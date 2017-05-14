@@ -1,15 +1,15 @@
 (function () {
 
     var cache, options, bg,
-    defaultConfig = { whitelist: '', whitelist_label: '', whitelist_value: '', blacklist_label: '', blacklist_value: '', enabled: 1, alphabetically_checkbox: '', highlightpageviews_checkbox: '' };
+    defaultConfig = { whitelist: '', whitelist_label: '', whitelist_value: '', blacklist_label: '', blacklist_value: '', enabled: 1, alphabetically_checkbox: '', 'ignore_options': 'on' };
 
     function formatHour(date) {
         var hours = date.getHours(),
             minutes = date.getMinutes(),
             seconds = date.getSeconds();
-        
-        return  hours + ":" + 
-                ((minutes < 10) ? "0" : "") + minutes + ":" + 
+
+        return  hours + ":" +
+                ((minutes < 10) ? "0" : "") + minutes + ":" +
                 ((seconds < 10) ? "0" : "") + seconds;
     }
 
@@ -61,34 +61,25 @@
                 continue;
             }
 
-            var tableClass = "";
-            if (options.highlightpageviews_checkbox === 'on') {
-                if (request.labels.ns_type === 'hidden') {
-                    tableClass = " downlighted";
-                } else {
-                    tableClass = " highlighted";
-                }
-            }
-
             var labels = [];
             for (var key in request.labels) {
                 labels.push({'key': key, 'label': request.labels[key]});
             }
-            if (labels.length === 0) {
-                return;
-            }
+            html = '<h4><span class="glyphicon glyphicon-time glyphicon"></span> ' + formatHour(new Date(request.timestamp)) + ' - <strong>' + request.title + '</strong></h4>';
 
-            html = '<h4><span class="glyphicon glyphicon-time glyphicon"></span> ' + formatHour(new Date(request.timestamp)) + '</h4>' +
-                '<table class="request table table-striped' + tableClass + '"><thead> <tr><th>Key</th><th>Value</th></tr> </thead>';
+						if (labels.length !== 0) {
+							html += '<table class="request table table-striped"><thead> <tr><th>Key</th><th>Value</th></tr> </thead>';
 
-            if (options.alphabetically_checkbox === 'on') {
-               labels = labels.sort(sortByKey); 
-            }
-            for (var i in labels) {
-                html += '<tr><td class="key" title="'+labels[i].label +'"><div>'+labels[i].key+'</div></td><td class="value"><div>' + labels[i].label + '</div></td></tr>';
-            }
+							if (options.alphabetically_checkbox === 'on') {
+								labels = labels.sort(sortByKey);
+							}
+							for (var i in labels) {
+								html += '<tr><td class="key" title="'+labels[i].label +'"><div>'+labels[i].key+'</div></td><td class="value"><div>' + labels[i].label + '</div></td></tr>';
+							}
 
-            html += "</table>";
+							html += "</table>";
+						}
+
 
             $('#content').append(html);
         }
@@ -102,6 +93,7 @@
         };
 
         bg = chrome.extension.getBackgroundPage();
+
         bg.addDataListener(refreshRequests);
 
         refreshRequests();

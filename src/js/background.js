@@ -1,6 +1,6 @@
 var dataListener = function () {},
     data = [],
-    listenUrl = "*://sa.bbc.co.uk/",
+    listenUrl = "*://ibl.api.bbc.co.uk/",
     defaultConfig = {
         path: '*',
         whitelist: '',
@@ -9,7 +9,8 @@ var dataListener = function () {},
         blacklist_label: '',
         blacklist_value: '',
         enabled: 1,
-        alphabetically_checkbox: ''
+        alphabetically_checkbox: '',
+				ignore_options: 'ON',
     },
     config = defaultConfig;
 
@@ -144,6 +145,10 @@ function setupPopupPanel() {
 }
 
 function isPathAllowed(url) {
+		if (!config.path) {
+			return true;
+		}
+
     var paths = config.path.split(",");
     for (var i in paths) {
         if (
@@ -156,47 +161,74 @@ function isPathAllowed(url) {
     return false;
 }
 
-chrome.webRequest.onBeforeSendHeaders.addListener(
-    function(info) {
-        var whitelist = false,
-            count = 0,
-            urlParts = info.url.split("?"),
-            params = false,
-            requestData = {
-                labels: {},
-                timestamp: new Date().getTime()
-            };
+function getTitle(requestDetails) {
+	var iblEndPoint = requestDetails.url.split("ibl/v1")[1];
+	var method = requestDetails.method;
 
-        if (!config.enabled) return;
-        //Check that the path is allowed based on the conf
-        if (!isPathAllowed(urlParts[0])) return;
+	return iblEndPoint + ' (' + method + ')';
+}
 
-        if (urlParts.length > 1) {
-            params = _parseQueryString(urlParts[1]);
-            if (config.whitelist !== '') {
-                whitelist = config.whitelist.split(',');
-            }
+function getParams (requestDetails) {
+	if (config.ignore_options === 'on' && requestDetails.method === "OPTIONS") {
+		return;
+	}
+	var iblRequestParams = {};
 
-            if (_filterRequest(params)) {
-                for (var key in params) {
-                    if (!whitelist || whitelist.indexOf(key) !== -1) {
-                        requestData.labels[key] = params[key];
-                        count ++;
-                    }
-                }
-                if (count > 0) {
-                    data.unshift(requestData);
-                }
-                _updatePopup();
-            }
-            _updateBadge();
-        }
+	if (requestDetails.method === "POST"){
+		var postBody = decodeURIComponent(String.fromCharCode.apply(null, new Uint8Array(requestDetails.requestBody.raw[0].bytes)));
+		return Object.assign({}, iblRequestParams, JSON.parse(postBody));
+	}
+	return iblRequestParams;
+}
+
+function getParamKey(keyValue) {
+	if (typeof keyValue === 'object') {
+		return JSON.stringify(keyValue, null, 2);
+	}
+	return keyValue;
+}
+
+
+chrome.webRequest.onBeforeRequest.addListener(
+    function(requestDetails) {
+				var params = getParams(requestDetails);
+
+				if (!params) {
+					return;
+				}
+				var whitelist = false;
+				var urlPath = requestDetails.url.split("ibl/v1")[0];
+				var requestData = {
+					labels: {},
+					title: getTitle(requestDetails),
+					timestamp: new Date().getTime()
+				};
+
+				if (!config.enabled) return;
+				//Check that the path is allowed based on the conf
+				if (!isPathAllowed(urlPath)) return;
+
+				if (config.whitelist !== '') {
+					whitelist = config.whitelist.split(',');
+				}
+
+				if (_filterRequest(params)) {
+					for (var key in params) {
+						if (!whitelist || whitelist.indexOf(key) !== -1) {
+							requestData.labels[key] = getParamKey(params[key]);
+						}
+					}
+
+					data.unshift(requestData);
+					_updatePopup();
+				}
+				_updateBadge();
     },
     { //filter
         urls: [ listenUrl + "*" ]
     },
     // extraInfoSpec
-    ["blocking"]
+    ["blocking", "requestBody"]
 );
 
 init();

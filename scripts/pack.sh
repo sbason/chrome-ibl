@@ -1,8 +1,8 @@
 #!/bin/bash
 unamestr=`uname`
-APPNAME=istats_log
+APPNAME=ibl_log
 BUILD_DIR=build
-params="--pack-extension=./src --pack-extension-key=./istats_log.pem"
+params="--pack-extension=./src --pack-extension-key=./ibl_log.pem"
 
 if [[ "$unamestr" == 'Linux' ]]; then
     chrome $params > /dev/null
