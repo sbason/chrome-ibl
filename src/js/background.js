@@ -10,7 +10,7 @@ var dataListener = function () {},
         blacklist_value: '',
         enabled: 1,
         alphabetically_checkbox: '',
-				ignore_options: 'ON',
+				ignore_options: 'on',
     },
     config = defaultConfig;
 
