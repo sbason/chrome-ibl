@@ -1,6 +1,6 @@
 {
     "name": "IBL log",
-    "version": "0.5.3",
+    "version": "0.1.0",
     "description": "Logs calls to IBL",
     "options_page": "options.html",
     "permissions": ["webRequest", "webRequestBlocking", "*://*.bbc.co.uk/*", "activeTab", "storage"],
